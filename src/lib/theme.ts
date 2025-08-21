@@ -1,25 +1,3 @@
-# My Betterment
-
-This is a [Next.js](https://nextjs.org/) with vision to boost the Civil Responsibility of the people in Malaysia. 
-
-This is a mobile-first app, use Responsive Design.
-
-
-## Technology choices
-
-- Next.js
-- Capacitor
-- OpenAI-compatible API with AI.SDK
-- Supabase for auth + database
-  - For use in api/ routes
-- Bun packaage manager
-
-
-## UI/UX Design Specifications
-
-### Pistachio Color Palette
-
-```typescript
 // Theme configuration with earthy shell tones and pastel greens
 export const PistachioTheme = {
   colors: {
@@ -80,21 +58,3 @@ export const PistachioTheme = {
     lg: '0 10px 15px rgba(58, 74, 50, 0.1)',
   }
 };
-```
-
-
-## Timeline & Features
-
-### Stage 1
-
-- Basic Login with Apple & Google
-- Camera scanning of problems
-- Use LLM API to classify the problem
-- User profile with submitted images (private)
-- Global leaderboard of offending vehicles
-
-### Stage 2
-
-- Feed timeline with post privacy options
-- Allow user to comment on posts
-- Report image as fake / AI-generated
