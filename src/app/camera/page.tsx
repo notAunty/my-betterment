@@ -1,209 +1,151 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Camera as CameraIcon, ArrowLeft, RotateCcw, Send } from 'lucide-react';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNavigation from '@/components/BottomNavigation';
+import { Camera as CameraIcon, X } from 'lucide-react';
 
 export default function CameraPage() {
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-
-  // Check if camera is available (in Capacitor environment)
-  const [isCameraAvailable, setIsCameraAvailable] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if we're in a Capacitor environment
-    const checkCameraAvailability = async () => {
-      try {
-        // This will work in Capacitor environment
-        await Camera.checkPermissions();
-        setIsCameraAvailable(true);
-      } catch (error) {
-        console.log('Camera not available in web environment');
-        setIsCameraAvailable(false);
-      }
-    };
-
-    checkCameraAvailability();
+    startCamera();
   }, []);
 
-  const takePicture = async () => {
-    try {
-      if (!isCameraAvailable) {
-        // Fallback for web environment - use HTML5 file input
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.capture = 'environment';
-        
-        input.onchange = (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              setCapturedImage(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
-          }
-        };
-        
-        input.click();
-        return;
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
       }
+    };
+  }, [stream]);
 
-      // Capacitor camera implementation
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
-      });
-
-      setCapturedImage(image.dataUrl || null);
-    } catch (error) {
-      console.error('Error taking picture:', error);
-      alert('Unable to take picture. Please try again.');
-    }
-  };
-
-  const retakePicture = () => {
-    setCapturedImage(null);
-  };
-
-  const submitReport = async () => {
-    if (!capturedImage) return;
-
-    setIsSubmitting(true);
-    
+  const startCamera = async () => {
     try {
-      // Here you would typically:
-      // 1. Upload the image to your backend/Supabase
-      // 2. Use LLM API to classify the problem
-      // 3. Save the report to database
-      
-      // For now, just simulate the process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      alert('Report submitted successfully! Thank you for helping improve your community.');
-      router.push('/dashboard');
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
     } catch (error) {
-      console.error('Error submitting report:', error);
-      alert('Error submitting report. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error accessing camera:', error);
     }
   };
 
-  if (capturedImage) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 pt-12 bg-surface">
-          <button onClick={retakePicture} className="p-2">
-            <ArrowLeft className="w-6 h-6 text-text-primary" />
-          </button>
-          <h1 className="text-lg font-semibold text-text-primary">
-            Review Photo
-          </h1>
-          <div className="w-10" />
-        </div>
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setCapturedImage(imageDataUrl);
+        setShowPopup(true);
+      }
+    }
+  };
 
-        {/* Image Preview */}
-        <div className="px-4 py-6">
-          <div className="relative rounded-xl overflow-hidden mb-6">
-            <img
-              src={capturedImage}
-              alt="Captured problem"
-              className="w-full h-96 object-cover"
-            />
-          </div>
+  const handleSubmit = () => {
+    if (capturedImage) {
+      // Stop camera before navigating
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      // Store the image in sessionStorage to pass to preview page
+      sessionStorage.setItem('capturedImage', capturedImage);
+      router.push('/preview');
+    }
+  };
 
-          {/* Actions */}
-          <div className="space-y-4">
-            <button
-              onClick={retakePicture}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-secondary rounded-xl font-medium text-text-primary"
-            >
-              <RotateCcw className="w-5 h-5" />
-              Retake Photo
-            </button>
-
-            <button
-              onClick={submitReport}
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-accent hover:bg-accent-light rounded-xl font-medium text-surface disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send className="w-5 h-5" />
-              {isSubmitting ? 'Submitting...' : 'Submit Report'}
-            </button>
-          </div>
-
-          <div className="mt-6 p-4 bg-primary-light rounded-xl">
-            <h3 className="font-semibold text-text-primary mb-2">
-              What happens next?
-            </h3>
-            <p className="text-text-secondary text-sm">
-              Our AI will analyze your photo to identify the issue and add it to the community database. You'll earn points for contributing to a better Malaysia!
-            </p>
-          </div>
-        </div>
-
-        <BottomNavigation />
-      </div>
-    );
-  }
+  const handleRetake = () => {
+    setCapturedImage(null);
+    setShowPopup(false);
+  };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 pt-12 bg-surface">
-        <button onClick={() => router.back()} className="p-2">
-          <ArrowLeft className="w-6 h-6 text-text-primary" />
-        </button>
-        <h1 className="text-lg font-semibold text-text-primary">
-          Report an Issue
+    <div className="min-h-screen bg-black relative">
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent px-4 py-6 pt-12">
+        <h1 className="text-2xl font-semibold text-white text-center">
+          Camera
         </h1>
-        <div className="w-10" />
       </div>
 
-      {/* Camera Interface */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <div className="text-center mb-8">
-          <div className="w-24 h-24 bg-primary-light rounded-full flex items-center justify-center mb-4 mx-auto">
-            <CameraIcon className="w-12 h-12 text-accent" />
+      <div className="relative w-full h-screen">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+        />
+        <canvas ref={canvasRef} className="hidden" />
+        
+        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2">
+          <button
+            onClick={capturePhoto}
+            className="bg-white hover:bg-gray-100 rounded-full p-4 shadow-lg transition-colors"
+          >
+            <CameraIcon className="w-8 h-8 text-black" />
+          </button>
+        </div>
+      </div>
+
+      {showPopup && capturedImage && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-xl p-6 max-w-sm w-full space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-text-primary">
+                Capture the Problem
+              </h2>
+              <button
+                onClick={handleRetake}
+                className="text-text-secondary hover:text-text-primary"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="aspect-square rounded-lg overflow-hidden">
+              <img 
+                src={capturedImage} 
+                alt="Captured" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <p className="text-text-secondary text-sm text-center">
+              You've captured an image of the problem. Continue to preview and submit.
+            </p>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={handleRetake}
+                className="flex-1 py-3 px-4 border border-border rounded-lg text-text-primary hover:bg-hover transition-colors"
+              >
+                Retake
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 py-3 px-4 bg-accent hover:bg-accent-light text-surface rounded-lg transition-colors"
+              >
+                Continue
+              </button>
+            </div>
           </div>
-          <h2 className="text-xl font-semibold text-text-primary mb-2">
-            Capture the Problem
-          </h2>
-          <p className="text-text-secondary max-w-sm">
-            Take a photo of traffic violations, illegal parking, or other civic issues you'd like to report.
-          </p>
         </div>
-
-        {/* Camera Button */}
-        <button
-          onClick={takePicture}
-          className="w-20 h-20 bg-accent hover:bg-accent-light rounded-full flex items-center justify-center shadow-lg transition-colors mb-8"
-        >
-          <CameraIcon className="w-8 h-8 text-surface" />
-        </button>
-
-        {/* Tips */}
-        <div className="bg-surface rounded-xl p-4 max-w-sm">
-          <h3 className="font-semibold text-text-primary mb-2">
-            📷 Photo Tips
-          </h3>
-          <ul className="text-sm text-text-secondary space-y-1">
-            <li>• Ensure good lighting</li>
-            <li>• Include license plates when relevant</li>
-            <li>• Capture clear evidence of the issue</li>
-            <li>• Be safe - don't put yourself at risk</li>
-          </ul>
-        </div>
-      </div>
+      )}
 
       <BottomNavigation />
     </div>

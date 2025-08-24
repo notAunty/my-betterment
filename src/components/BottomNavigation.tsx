@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Camera, User, Trophy } from 'lucide-react';
+import { Camera, User, Home } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,18 +11,12 @@ export default function BottomNavigation() {
     {
       icon: Home,
       label: 'Home',
-      href: '/dashboard',
-      active: pathname === '/dashboard'
-    },
-    {
-      icon: Trophy,
-      label: 'Leaderboard', 
-      href: '/leaderboard',
-      active: pathname === '/leaderboard'
+      href: '/home',
+      active: pathname === '/home'
     },
     {
       icon: Camera,
-      label: 'Scan',
+      label: 'Camera',
       href: '/camera',
       active: pathname === '/camera',
       isCamera: true

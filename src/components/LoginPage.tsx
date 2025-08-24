@@ -101,7 +101,7 @@ export default function LoginPage() {
                   providers={['google', 'apple']}
                   onlyThirdPartyProviders={true}
                   socialLayout="horizontal"
-                  redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : undefined}
+                  redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/home` : undefined}
                 />
               ) : (
                 <div className="space-y-3">
@@ -117,7 +117,7 @@ export default function LoginPage() {
                     Demo mode - Supabase not configured
                   </p>
                   <button 
-                    onClick={() => window.location.href = '/dashboard'}
+                    onClick={() => window.location.href = '/home'}
                     className="w-full py-3 px-4 bg-accent text-surface rounded-lg font-medium hover:bg-accent-light transition-colors"
                   >
                     Continue to Demo
