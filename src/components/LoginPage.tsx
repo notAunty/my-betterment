@@ -1,13 +1,35 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/auth';
+import AuthGuard from '@/components/AuthGuard';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { user, loading } = useAuthStore();
+
+  useEffect(() => {
+    if (user && !loading) {
+      router.push('/home');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <AuthGuard requireAuth={false}>
+      <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="flex items-center p-4 pt-12">
         <button className="p-2">
@@ -126,8 +148,9 @@ export default function LoginPage() {
               )}
             </div>
           </div>
+          </div>
         </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

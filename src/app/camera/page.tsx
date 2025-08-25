@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNavigation from '@/components/BottomNavigation';
+import AuthGuard from '@/components/AuthGuard';
 import { Camera as CameraIcon, X } from 'lucide-react';
 
 export default function CameraPage() {
@@ -75,7 +76,8 @@ export default function CameraPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative">
+    <AuthGuard>
+      <div className="min-h-screen bg-black relative">
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent px-4 py-6 pt-12">
         <h1 className="text-2xl font-semibold text-white text-center">
           Camera
@@ -147,7 +149,8 @@ export default function CameraPage() {
         </div>
       )}
 
-      <BottomNavigation />
-    </div>
+        <BottomNavigation />
+      </div>
+    </AuthGuard>
   );
 }
